@@ -1,0 +1,9 @@
+name: pc_env
+dependencies:
+  - python=3.9.16
+  - pip=23.0.1
+  - pip:
+      - numpy==1.24.2
+      - pandas==2.0.0
+      - python-decouple==3.8
+      - openai==0.27.8
