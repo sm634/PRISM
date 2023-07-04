@@ -2,16 +2,16 @@ from decouple import config
 import openai
 from openai.error import RateLimitError
 import backoff
+from models.prompts_base import Prompts
+import json
 
 openai.api_key = config('OPENAI_API_KEY')
 
 
-class Prompts:
+class PromptsInvoice(Prompts):
 
-    def __init__(self, model="text-davinci-003", max_tokens=1000, temperature=0):
-        self.max_tokens = max_tokens
-        self.temperature = temperature
-        self.model = model
+    def __init__(self):
+        Prompts.__init__(self, model="text-davinci-003", max_tokens=1000, temperature=0)
 
     @staticmethod
     def __extract_invoice_prompt(data_fields, prompt_text, invoice_text):
@@ -88,5 +88,112 @@ class Prompts:
 
             extracted_values = self.chat_completions_with_backoff(data_fields, prompt_text, invoice_text)
             print(f"Extracting data field values from document {file_index}")
+
+        return extracted_values
+
+
+class CompareText(Prompts):
+    def __init__(self):
+        Prompts.__init__(self, model="gpt-3.5-turbo", max_tokens=1000, temperature=0)
+
+    @staticmethod
+    def __compare_texts(text_1, text_2):
+        """
+        Compares two blocks of texts, explains if they are similar or not, provides a similiarity score (range
+         of [0, 1]) and a confidence score (range of [0, 1]) showing how confident the judgment is.
+        :param text_1: The first block of text to compare.
+        :param text_2: The second block of text to compare.
+        :return: A json that looks like {
+                                        "explanation": explanation_value,
+                                        "similarity_score": 0.5,
+                                        "confidence_score": 0.9
+                                         }
+        """
+
+        return f"""Compare text 1 and text 2 below of legal policies, explain if they are similar or different. 
+        Return a json output with one key value with this explanation, 
+        a key-value pair of similarity between the two texts, and another key-value pair of confidence score. 
+        Example: 
+        
+        "explanation": "They are not similar because one talks about ... and another talks about ...", 
+        "similarity_score": 0.4,
+        "confidence_score": 0.8
+
+        text 1: {text_1}  
+        
+        text 2: {text_2}
+        
+        """
+
+    @staticmethod
+    def compare_texts(text_1, text_2):
+        text_info = {
+            "text_1": text_1,
+            "text_2": text_2,
+        }
+        return json.dumps(text_info)
+
+    @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
+    def chat_completions_with_backoff(self, text_1, text_2, retry=True):
+        while retry:
+            try:
+                response = openai.ChatCompletion.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": "You are a helpful policy analyst. Your job is to compare blocks"
+                                                      "of text and assess how similar or different they are and return"
+                                                      "a json with the explanation, scores to indicate their similarity"
+                                                      "and your confidence in making that judgment."},
+                        {"role": "user", "content": self.__compare_texts(text_1, text_2)}
+                    ],
+                    temperature=self.temperature,
+                    n=1,
+                    max_tokens=self.max_tokens
+                )
+                return response['choices'][0]['message']['content']
+            except RateLimitError:
+                print(f"Requests to the model are at maximum capacity, cooling off before retrying the requests"
+                      f" using exponential backoff.")
+            except openai.error.APIError as e:
+                print(f"The request ran into an OpenAI server issue. Retrying the request again.")
+
+    @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
+    def completions_with_backoff(self, text_1, text_2, retry=True):
+        # try - except clause to handle bad gateway problems.
+        while retry:
+            try:
+                response = openai.Completion.create(
+                    engine=self.model,
+                    prompt=self.__compare_texts(text_1, text_2),
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature
+                )
+                return response.choices[0].text
+
+            except RateLimitError:
+                print(f"Requests to the model are at maximum capacity, cooling off before retrying the requests"
+                      f" using exponential backoff.")
+            except openai.error.APIError:
+                print(f"The request ran into an OpenAI server issue. Retrying the request again.")
+
+    def compare_texts_prompt(self, text_1, text_2):
+        """
+        :param text_1: The first block of text to compare.
+        :param text_2: The second block of text to compare.
+        :return: A json that looks like {
+                                        "explanation": explanation_value,
+                                        "similarity_score": 0.5,
+                                        "confidence_score": 0.9
+                                         }
+        """
+
+        extracted_values = ''
+
+        if self.model == 'text-davinci-003':
+            extracted_values = self.completions_with_backoff(text_1, text_2)
+
+        elif self.model == 'gpt-3.5-turbo' or self.model == 'gpt-3.5-turbo-0301':
+
+            extracted_values = self.chat_completions_with_backoff(text_1, text_2)
 
         return extracted_values
