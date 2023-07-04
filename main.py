@@ -1,35 +1,70 @@
 from models.prompts import CompareText
 from utils.parse_output import parse_stringified_json
 import pandas as pd
+from datetime import datetime
+import re
 
+
+today = re.sub('\.+', '', str(datetime.today())).replace(':', '-').replace(' ', '_')
 model = CompareText.model = 'gpt-3.5-turbo'
 prompt = CompareText()
 
-t1 = """
-Competent authorities may, as a measure of last resort, following the notification and, if appropriate, 
-the consultation as set out in paragraph 4 and 5 of this Article, in accordance with Article 50, 
-take a decision requiring financial entities to temporarily suspend, either in part or completely, 
-the use or deployment of a service provided by the critical ICT third-party service provider until the risks identified 
-in the recommendations addressed to critical ICT third-party service providers have been addressed. Where necessary, 
-they may require financial entities to terminate, in part or completely, the relevant contractual arrangements 
-concluded with the critical ICT third-party service providers.
-""".replace("\n", '')
+dora_regulation_text = pd.read_excel('data/input/dora_regulation.xlsx', sheet_name=0)
+dora_regulatory_ref = dora_regulation_text.columns[0]
+dora_regulatory_col = dora_regulation_text.columns[1]
+dora_regulation_text[dora_regulatory_col] = dora_regulation_text[
+    dora_regulatory_col].apply(lambda x: x.replace('\n', ''))
 
-t2 = """
-While IOSCO states that entitties 'may' consider appointing a resource to oversee outsourcing arrangements, 
-DORA focuses on entity's obligation on designating a member of senior management to oversee and monitor third party 
-arrangements as well as managing risk exposure and relevant documentation (ICTRM 5.3). 
-Additionally, DORA mentions members of the management body to actively keep up to date with sufficient knowledge, 
-skills and training to effectively manage ICT risk (ICTRM 5.4)
-""".replace("\n", '')
+iosco_regulation_text = pd.read_excel('data/input/iosco_regulation.xlsx', sheet_name=0)
+iosco_regulatory_ref = iosco_regulation_text.columns[0]
+iosco_regulatory_col = iosco_regulation_text.columns[1]
+iosco_regulation_text[iosco_regulatory_col] = iosco_regulation_text[
+    iosco_regulatory_col].apply(lambda x: x.replace('\n', ''))
 
-output_dict = {"text_1": t1,
-               "text_2": t2}
 
-output = prompt.compare_texts_prompt(text_1=t1, text_2=t2)
-output = parse_stringified_json(output)
-output_dict.update(output)
-df_output = pd.DataFrame(output_dict, index=[0])
+dora_sample = dora_regulation_text.sample(1)
+dora_refs = dora_sample[dora_regulatory_ref].to_list()
+dora_text = dora_sample[dora_regulatory_col].to_list()
 
-print(df_output)
-breakpoint()
+
+# first test
+iosco_sample = iosco_regulation_text.sample(n=10, random_state=1)
+iosco_refs = iosco_sample[iosco_regulatory_ref].to_list()
+iosco_text = iosco_sample[iosco_regulatory_col].to_list()
+
+text_1_list = []
+text_1_ref = []
+
+text_2_list = []
+text_2_ref = []
+
+explanations = []
+confidence_scores = []
+similarity_scores = []
+
+for i, text1 in enumerate(dora_text):
+    for j, text2 in enumerate(iosco_text):
+        print(f"comparing dora regulation {i} to iosco regulation {j}")
+        comparison = prompt.compare_texts_prompt(text_1=text1, text_2=text2)
+        dict_output = parse_stringified_json(comparison)
+        explanations.append(dict_output['explanation'])
+        confidence_scores.append(dict_output['confidence_score'])
+        similarity_scores.append(dict_output['similarity_score'])
+        text_1_list.append(text1)
+        text_1_ref.append(dora_refs[i])
+        text_2_list.append(text2)
+        text_2_ref.append(iosco_refs[j])
+
+df = pd.DataFrame(data={'dora_ref': text_1_ref,
+                        'dora_sample': text_1_list,
+                        'iosco_ref': text_2_ref,
+                        'iosco_sample': text_2_list,
+                        'explanation': explanations,
+                        'confidence_score': confidence_scores,
+                        'similarity_score': similarity_scores
+                        }).sort_values(by=['similarity_score', 'confidence_score'], ascending=False)
+# filtered_df = df[df['similarity_score'] >= 0.6].copy()
+
+output_file_name = f'sample_output_{model}_{today}'
+df.to_excel(f"data/output/{output_file_name}.xlsx")
+# filtered_df.to_excel(f"data/output/{output_file_name}.xlsx")
