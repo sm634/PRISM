@@ -112,7 +112,9 @@ class CompareText(Prompts):
 
         return f"""Compare text 1 and text 2 below of legal policies, explain if they are similar or different. 
         Return a json output with one key value with this explanation, 
-        a key-value pair of similarity between the two texts, and another key-value pair of confidence score. 
+        a key-value pair of similarity score in range [0,1] between the two texts, 
+        and another key-value pair of confidence score in range [0,1]. Make sure the similarity and confidence scores
+        take into account similarity between text 1 and text 2 on all aspects.
         Example: 
         
         "explanation": "They are not similar because one talks about ... and another talks about ...", 
@@ -154,8 +156,10 @@ class CompareText(Prompts):
             except RateLimitError:
                 print(f"Requests to the model are at maximum capacity, cooling off before retrying the requests"
                       f" using exponential backoff.")
-            except openai.error.APIError as e:
+            except openai.error.APIError:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
+            except openai.error.ServiceUnavailableError as e:
+                print(f"{e}. Trying again with exponential backoff.")
 
     @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
     def completions_with_backoff(self, text_1, text_2, retry=True):
@@ -175,6 +179,8 @@ class CompareText(Prompts):
                       f" using exponential backoff.")
             except openai.error.APIError:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
+            except openai.error.ServiceUnavailableError as e:
+                print(f"{e}. Trying again with exponential backoff.")
 
     def compare_texts_prompt(self, text_1, text_2):
         """

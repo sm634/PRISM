@@ -8,7 +8,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-sample = True
+sample = False
 
 today = re.sub('\.+', '', str(datetime.today())).replace(':', '-').replace(' ', '_')
 model = CompareText.model = 'gpt-3.5-turbo'
@@ -67,7 +67,7 @@ similarity_scores = []
 
 for i, text1 in enumerate(dora_text):
     for j, text2 in enumerate(iosco_text):
-        print(f"comparing {file1_name} policy {i} to {file2_name} policy {j}")
+        print(f"comparing {file1_name} policy {i+1} to {file2_name} policy {j+1}")
         comparison = prompt.compare_texts_prompt(text_1=text1, text_2=text2)
         dict_output = parse_stringified_json(comparison)
         explanations.append(dict_output['explanation'])
@@ -86,8 +86,8 @@ df = pd.DataFrame(data={f'{file1_name}_ref': text_1_ref,
                         'confidence_score': confidence_scores,
                         'similarity_score': similarity_scores
                         }).sort_values(by=['similarity_score', 'confidence_score'], ascending=False)
-# filtered_df = df[df['similarity_score'] >= 0.6].copy()
+filtered_df = df[df['similarity_score'] >= 0.7].copy()
 
 output_file_name = f'sample_output_{model}_{today}'
 df.to_excel(f"data/output/{output_file_name}.xlsx")
-# filtered_df.to_excel(f"data/output/{output_file_name}.xlsx")
+filtered_df.to_excel(f"data/output/filtered_{output_file_name}.xlsx")

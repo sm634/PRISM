@@ -1,1 +1,1 @@
-dora_regulation.xlsx,iosco_regulation.xlsx
+dora_regulation_yes.xlsx,iosco_regulation_yes.xlsx
