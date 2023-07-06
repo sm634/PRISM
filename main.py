@@ -86,7 +86,7 @@ df = pd.DataFrame(data={f'{file1_name}_ref': text_1_ref,
                         'confidence_score': confidence_scores,
                         'similarity_score': similarity_scores
                         }).sort_values(by=['similarity_score', 'confidence_score'], ascending=False)
-filtered_df = df[df['similarity_score'] >= 0.7].copy()
+filtered_df = df[df['similarity_score'] < 0.7].copy()
 
 output_file_name = f'sample_output_{model}_{today}'
 df.to_excel(f"data/output/{output_file_name}.xlsx")
