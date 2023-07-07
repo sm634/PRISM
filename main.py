@@ -8,7 +8,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 
-sample = False
+sample = True
 
 today = re.sub('\.+', '', str(datetime.today())).replace(':', '-').replace(' ', '_')
 model = CompareText.model = 'gpt-3.5-turbo'
@@ -39,12 +39,12 @@ iosco_regulation_text[iosco_regulatory_col] = iosco_regulation_text[
     iosco_regulatory_col].apply(lambda x: x.replace('\n', ''))
 
 if sample:
-    dora_sample = dora_regulation_text.sample(1)
+    dora_sample = dora_regulation_text.sample(n=2, random_state=1)
     dora_refs = dora_sample[dora_regulatory_ref].to_list()
     dora_text = dora_sample[dora_regulatory_col].to_list()
 
     # first test
-    iosco_sample = iosco_regulation_text.sample(n=10, random_state=1)
+    iosco_sample = iosco_regulation_text.sample(n=4, random_state=1)
     iosco_refs = iosco_sample[iosco_regulatory_ref].to_list()
     iosco_text = iosco_sample[iosco_regulatory_col].to_list()
 else:
@@ -86,8 +86,8 @@ df = pd.DataFrame(data={f'{file1_name}_ref': text_1_ref,
                         'confidence_score': confidence_scores,
                         'similarity_score': similarity_scores
                         }).sort_values(by=['similarity_score', 'confidence_score'], ascending=False)
-filtered_df = df[df['similarity_score'] < 0.7].copy()
+aligned_df = df[df['similarity_score'] <= 0.7].copy()
 
 output_file_name = f'sample_output_{model}_{today}'
 df.to_excel(f"data/output/{output_file_name}.xlsx")
-filtered_df.to_excel(f"data/output/filtered_{output_file_name}.xlsx")
+aligned_df.to_excel(f"data/output/filtered_{output_file_name}.xlsx")
