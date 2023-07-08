@@ -4,57 +4,33 @@ import pandas as pd
 from datetime import datetime
 import re
 import argparse
+from utils.data_handler import FileHandler
 
 
 parser = argparse.ArgumentParser()
 
+parser.add_argument('--model', type=str, default='gpt-3.5-turbo')
+
+args = parser.parse_args()
+
 sample = True
 
 today = re.sub('\.+', '', str(datetime.today())).replace(':', '-').replace(' ', '_')
-model = CompareText.model = 'gpt-3.5-turbo'
+model = CompareText.model = args.model
 prompt = CompareText()
 
-# take input files
-with open('reference_docs/input_files.txt', 'r') as f:
-    files = f.read()
-    files_list = files.split(',')
-    f.close()
-
-file1 = files_list[0]
-file2 = files_list[1]
-
-file1_name = file1.replace('.xlsx', '')
-file2_name = file2.replace('.xlsx', '')
-
-dora_regulation_text = pd.read_excel(f'data/input/{file1}', sheet_name=0)
-dora_regulatory_ref = dora_regulation_text.columns[0]
-dora_regulatory_col = dora_regulation_text.columns[1]
-dora_regulation_text[dora_regulatory_col] = dora_regulation_text[
-    dora_regulatory_col].apply(lambda x: x.replace('\n', ''))
-
-iosco_regulation_text = pd.read_excel(f'data/input/{file2}', sheet_name=0)
-iosco_regulatory_ref = iosco_regulation_text.columns[0]
-iosco_regulatory_col = iosco_regulation_text.columns[1]
-iosco_regulation_text[iosco_regulatory_col] = iosco_regulation_text[
-    iosco_regulatory_col].apply(lambda x: x.replace('\n', ''))
-
-if sample:
-    dora_sample = dora_regulation_text.sample(n=2, random_state=1)
-    dora_refs = dora_sample[dora_regulatory_ref].to_list()
-    dora_text = dora_sample[dora_regulatory_col].to_list()
-
-    # first test
-    iosco_sample = iosco_regulation_text.sample(n=4, random_state=1)
-    iosco_refs = iosco_sample[iosco_regulatory_ref].to_list()
-    iosco_text = iosco_sample[iosco_regulatory_col].to_list()
-else:
-    dora_refs = dora_regulation_text[dora_regulatory_ref].to_list()
-    dora_text = dora_regulation_text[dora_regulatory_col].to_list()
-
-    iosco_refs = iosco_regulation_text[iosco_regulatory_ref].to_list()
-    iosco_text = iosco_regulation_text[iosco_regulatory_col].to_list()
+# open specified files and get regulatory text cols.
+file_handler = FileHandler()
+regulatory_ref1, regulation_text1, regulatory_ref2, regulation_text2 = file_handler.get_reg_texts_cols()
+file1_name, file2_name = file_handler.get_files_names()
 
 
+# keyword extraction block.
+
+
+
+
+# Caparator block.
 text_1_list = []
 text_1_ref = []
 
@@ -65,8 +41,8 @@ explanations = []
 confidence_scores = []
 similarity_scores = []
 
-for i, text1 in enumerate(dora_text):
-    for j, text2 in enumerate(iosco_text):
+for i, text1 in enumerate(regulation_text1):
+    for j, text2 in enumerate(regulation_text2):
         print(f"comparing {file1_name} policy {i+1} to {file2_name} policy {j+1}")
         comparison = prompt.compare_texts_prompt(text_1=text1, text_2=text2)
         dict_output = parse_stringified_json(comparison)
@@ -74,9 +50,9 @@ for i, text1 in enumerate(dora_text):
         confidence_scores.append(dict_output['confidence_score'])
         similarity_scores.append(dict_output['similarity_score'])
         text_1_list.append(text1)
-        text_1_ref.append(dora_refs[i])
+        text_1_ref.append(regulatory_ref1[i])
         text_2_list.append(text2)
-        text_2_ref.append(iosco_refs[j])
+        text_2_ref.append(regulatory_ref2[j])
 
 df = pd.DataFrame(data={f'{file1_name}_ref': text_1_ref,
                         f'{file1_name}_sample': text_1_list,
