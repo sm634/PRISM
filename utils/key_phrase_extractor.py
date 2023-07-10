@@ -1,5 +1,6 @@
 import yake
 from typing import List, Tuple, Iterable
+from utils.text_preprocessor import TextPreprocessor
 
 
 class Extractor:
@@ -22,9 +23,11 @@ class Extractor:
         key_words = [i[0] for i in key_words_list_tuple]
         return key_words
 
-    def find_kw_matching_docs(self, corpus1: Iterable, corpus2: Iterable) -> Tuple:
-        print("Extracting key words from corpus2")
+    def __find_kw_matching_docs(self, corpus1: Iterable, corpus2: Iterable) -> Tuple:
+        print("\nFILTER STEP: Extracting key words from corpus2\n")
         key_phrases = [self.__extract_keywords(doc) for doc in corpus2]
+
+        total_docs = len(corpus1) * len(corpus2)
 
         print("Getting matching key phrases in corpus1")
         kp_matched_docs = []
@@ -40,7 +43,36 @@ class Extractor:
         kp_matched_docs = [sorted(kp_matched, key=lambda x: x[2], reverse=True) for kp_matched in kp_matched_docs]
         print("key phrase matching complete")
         num_kp_matches = sum(len(ls) for ls in kp_matched_docs)
-        print(f"Number of documents with matching key phrases across corpus 1 and corpus 2: {num_kp_matches}")
+        print(f"Number of documents with matching key phrases across corpus 1 and corpus 2: {num_kp_matches}"
+              f" out of a possible {total_docs}\n comparisons.")
 
         return kp_matched_docs, num_kp_matches
 
+    def get_matching_records(self, corpus1: List, corpus2: List, ref1: List, ref2: List):
+        """A function that is used to get documents amongst two corpus to that contain relevant key words."""
+
+        print("preprocessing regulation texts")
+        preprocessor = TextPreprocessor()
+        preprocessed_corpus1 = [preprocessor.preprocess_text(text) for text in corpus1]
+        preprocessed_corpus2 = [preprocessor.preprocess_text(text) for text in corpus2]
+
+        # This returns a List[List[Tuple]], where the first list contains all comparisons between corpus 1 and 2
+        # for key word searches. The list within the list contains all key word matches in a particular document
+        # belonging to corpus 2 that is also found in corpus 1. The tuple consists of:
+        # (document index of corpus 2, document index of corpus 1, count of kw matches).
+        kp_matched_docs, num_kp_matches = self.__find_kw_matching_docs(preprocessed_corpus1, preprocessed_corpus2)
+
+        filtered_corpus1 = {}
+        filtered_corpus2 = {}
+        non_matched_refs = []
+
+        for i, match in enumerate(kp_matched_docs):
+            if len(match) < 1:
+                non_matched_refs.append(ref2[i])
+            for doc in match:
+                """The second corpus exists in the 1st tuple position, while the first exists in the second."""
+                filtered_corpus2[ref2[doc[0]]] = corpus2[doc[0]]
+                filtered_corpus1[ref1[doc[1]]] = corpus1[doc[1]]
+
+        print("Corpus 1 and 2 filtered to extract matching documents based on key phrase extraction.")
+        return filtered_corpus1, filtered_corpus2, non_matched_refs

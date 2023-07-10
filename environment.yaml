@@ -1,4 +1,4 @@
-name: pc_env
+name: prism_env
 dependencies:
   - python=3.9.16
   - pip=23.0.1
