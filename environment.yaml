@@ -12,3 +12,4 @@ dependencies:
       - yake==0.4.8
       - gensim==4.3.1
       - scikit-learn==1.3.0
+      - xlsxwriter==3.1.2

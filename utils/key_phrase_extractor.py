@@ -44,7 +44,7 @@ class Extractor:
         print("key phrase matching complete")
         num_kp_matches = sum(len(ls) for ls in kp_matched_docs)
         print(f"Number of documents with matching key phrases across corpus 1 and corpus 2: {num_kp_matches}"
-              f" out of a possible {total_docs}\n comparisons.")
+              f" out of a possible {total_docs} comparisons.\n")
 
         return kp_matched_docs, num_kp_matches
 

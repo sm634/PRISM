@@ -74,21 +74,23 @@ def run_all():
                             }).sort_values(by=['similarity_score', 'confidence_score'], ascending=False)
 
     # partition dataframe based on aligned and partially aligned categories.
-    aligned_df = df[df['similarity_score'] <= 0.7].copy()
+    aligned_df = df[df['similarity_score'] >= 0.7].copy()
     partial_df = df.loc[(df['similarity_score'] >= 0.5) &
                         (df['similarity_score'] < 0.7)].copy()
 
     # output aligned and partial aligned text.
     output_file_name = f'sample_output_{model}_{today}'
-    aligned_df.to_excel(f"data/output/{output_file_name}.xlsx", sheet_name="aligned")
-    partial_df.to_excel(f"data/output/{output_file_name}.xlsx", sheet_name="partial")
+    output_path = f"data/output/{output_file_name}"
+
+    aligned_df.to_excel(f"{output_path}_aligned.xlsx", sheet_name="Aligned", index=False)
+    partial_df.to_excel(f"{output_path}_partial.xlsx", sheet_name="Partial", index=False)
 
     # Provide a list of references from corpus2 that was not found in corpus1.
     non_matched_series = pd.DataFrame(data={
-                                            f"{file2_name}_no_matche_refs":
+                                            f"{file2_name}_no_matches_refs":
                                             non_matched_refs
                                             })
-    non_matched_series.to_excel(f"data/output/{output_file_name}.xlsx", sheet_name="no_matches")
+    non_matched_series.to_excel(f"{output_path}_not_aligned.xlsx", sheet_name="no_matches", index=False)
 
 
 if __name__ == '__main__':
