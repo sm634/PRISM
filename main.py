@@ -26,15 +26,15 @@ def run_all():
     file1_name, file2_name = file_handler.get_files_names()
 
     # key phrase extractor. Get key phrases from reg text 2.
-    print("Extracting key phrases from regulation text 2")
+    print(f"\nFILTER STEP: Extracting key phrases from {file2_name} to search in {file1_name}")
     kp_extractor = Extractor()
 
     # extract key phrases from corpus 1 and find matching documents in corpus 2.
     filtered_ref_corpus1, filtered_ref_corpus2, non_matched_refs = kp_extractor.get_matching_records(reg_corpus1,
                                                                                                      reg_corpus2,
                                                                                                      reg_ref1,
-                                                                                                     reg_ref2)
-
+                                                                                                     reg_ref2,
+                                                                                                     log=True)
     filtered_corpus1 = [doc for doc in filtered_ref_corpus1.values()]
     filtered_corpus2 = [doc for doc in filtered_ref_corpus2.values()]
     filtered_ref1 = [ref for ref in filtered_ref_corpus1.keys()]
@@ -54,10 +54,15 @@ def run_all():
     confidence_scores = []
     similarity_scores = []
 
+    estimated_time = (1.5 * len(filtered_ref_corpus1) * len(filtered_ref_corpus2))/60
+
+    print(f"\ncomparing {file1_name} to {file2_name} for an initial analysis. This will likely take {estimated_time} "
+          f"minutes. If that is enough time, go enjoy a cup of coffee :)\n")
+
     for i, text1 in enumerate(filtered_corpus1):
         for j, text2 in enumerate(filtered_corpus2):
-            print(f"comparing {file1_name} policy {i + 1} to {file2_name} policy {j + 1}")
-            comparison = prompt.compare_texts_prompt(text_1=text1, text_2=text2)
+
+            comparison = prompt.compare_policies_prompt(text_1=text1, text_2=text2)
             dict_output = parse_stringified_json(comparison)
             explanations.append(dict_output['explanation'])
             confidence_scores.append(dict_output['confidence_score'])

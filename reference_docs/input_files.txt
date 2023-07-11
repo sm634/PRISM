@@ -1,1 +1,1 @@
-dora_regulation_yes.xlsx,iosco_regulation_yes.xlsx
+dora_sample_02.xlsx,eba_sample_01.xlsx

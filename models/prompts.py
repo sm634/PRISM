@@ -97,7 +97,7 @@ class CompareText(Prompts):
         Prompts.__init__(self, model="gpt-3.5-turbo", max_tokens=1000, temperature=0)
 
     @staticmethod
-    def __compare_texts(text_1, text_2):
+    def __compare_policies(text_1, text_2):
         """
         Compares two blocks of texts, explains if they are similar or not, provides a similiarity score (range
          of [0, 1]) and a confidence score (range of [0, 1]) showing how confident the judgment is.
@@ -110,16 +110,17 @@ class CompareText(Prompts):
                                          }
         """
 
-        return f"""Compare text 1 and text 2 below of legal policies, explain if they are similar or different. 
-        Return a json output with one key value with this explanation, 
-        a key-value pair of similarity score in range [0,1] between the two texts, 
-        and another key-value pair of confidence score in range [0,1]. Make sure the similarity and confidence scores
+        return f"""Compare text 1 and text 2 below of legal policies. Summarize text 1 and text 2. 
+        Explain if they are similar or different and give reasons on why. Return a json output with a key value 
+        of the explanation, a key-value pair of similarity score in range [0,1] between the two texts, 
+        and another key-value pair of confidence score in range [0,1]. Make sure the similarity and confidence scores 
         take into account similarity between text 1 and text 2 on all aspects.
+        
         Example: 
         
-        "explanation": "They are not similar because one talks about ... and another talks about ...", 
-        "similarity_score": 0.4,
-        "confidence_score": 0.8
+        "explanation": "They are similar because they are both focused on ... but the differences are ...", 
+        "similarity_score": 0.5,
+        "confidence_score": 0.5
 
         text 1: {text_1}  
         
@@ -146,7 +147,7 @@ class CompareText(Prompts):
                                                       "of text and assess how similar or different they are and return"
                                                       "a json with the explanation, scores to indicate their similarity"
                                                       "and your confidence in making that judgment."},
-                        {"role": "user", "content": self.__compare_texts(text_1, text_2)}
+                        {"role": "user", "content": self.__compare_policies(text_1, text_2)}
                     ],
                     temperature=self.temperature,
                     n=1,
@@ -168,7 +169,7 @@ class CompareText(Prompts):
             try:
                 response = openai.Completion.create(
                     engine=self.model,
-                    prompt=self.__compare_texts(text_1, text_2),
+                    prompt=self.__compare_policies(text_1, text_2),
                     max_tokens=self.max_tokens,
                     temperature=self.temperature
                 )
@@ -182,7 +183,7 @@ class CompareText(Prompts):
             except openai.error.ServiceUnavailableError as e:
                 print(f"{e}. Trying again with exponential backoff.")
 
-    def compare_texts_prompt(self, text_1, text_2):
+    def compare_policies_prompt(self, text_1, text_2):
         """
         :param text_1: The first block of text to compare.
         :param text_2: The second block of text to compare.
