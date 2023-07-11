@@ -1,4 +1,4 @@
 # PRISM
-Policy & Regulation Intelligent Semmatic Mapper
+Policy & Regulation Intelligent Semantic Mapper
 
 # Design
