@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime
 import re
 import argparse
+from time import time
 
 parser = argparse.ArgumentParser()
 
@@ -55,6 +56,8 @@ def run_all():
     similarity_scores = []
 
     estimated_time = (1.5 * len(filtered_ref_corpus1) * len(filtered_ref_corpus2))/60
+    n_comparisons = len(filtered_ref_corpus1) * len(filtered_ref_corpus2)
+
 
     print(f"\ncomparing {file1_name} to {file2_name} for an initial analysis. This will likely take {estimated_time} "
           f"minutes. If that is enough time, go enjoy a cup of coffee :)\n")
@@ -106,4 +109,8 @@ def run_all():
 
 
 if __name__ == '__main__':
+    t1 = time()
+    print("Timer started.")
     run_all()
+    t2 = (time() - t1)/60
+    print(f"Mapping finished. Process took {t2:.2f} minutes.")
