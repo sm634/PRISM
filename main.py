@@ -13,12 +13,13 @@ parser.add_argument('--model', type=str, default='gpt-3.5-turbo')
 
 args = parser.parse_args()
 
+# get variables to be used.
+today = re.sub('\.+', '', str(datetime.today())).replace(':', '-').replace(' ', '_')
+model = CompareText.model = args.model
+
 
 def run_all():
-    today = re.sub('\.+', '', str(datetime.today())).replace(':', '-').replace(' ', '_')
-    model = CompareText.model = args.model
-    prompt = CompareText()
-
+    """Run Prism, from steps of accessing files to compare, key word search pre-filter step and comparison."""
     # # open specified files and get regulatory text cols.
     file_handler = FileHandler()
     reg_ref1, reg_corpus1, reg_ref2, reg_corpus2 = file_handler.get_reg_texts_cols()
@@ -39,7 +40,10 @@ def run_all():
     filtered_ref1 = [ref for ref in filtered_ref_corpus1.keys()]
     filtered_ref2 = [ref for ref in filtered_ref_corpus2.keys()]
 
-    # Comparator block.
+    """Comparator Block"""
+    prompt = CompareText()
+
+    # Instantiate lists to save outputs.
     text_1_list = []
     text_1_ref = []
 
@@ -73,24 +77,27 @@ def run_all():
                             'similarity_score': similarity_scores
                             }).sort_values(by=['similarity_score', 'confidence_score'], ascending=False)
 
+    print("\nSorting output to get results.")
     # partition dataframe based on aligned and partially aligned categories.
     aligned_df = df[df['similarity_score'] >= 0.7].copy()
     partial_df = df.loc[(df['similarity_score'] >= 0.5) &
                         (df['similarity_score'] < 0.7)].copy()
 
-    # output aligned and partial aligned text.
-    output_file_name = f'sample_output_{model}_{today}'
-    output_path = f"data/output/{output_file_name}"
-
-    aligned_df.to_excel(f"{output_path}_aligned.xlsx", sheet_name="Aligned", index=False)
-    partial_df.to_excel(f"{output_path}_partial.xlsx", sheet_name="Partial", index=False)
-
     # Provide a list of references from corpus2 that was not found in corpus1.
     non_matched_series = pd.DataFrame(data={
-                                            f"{file2_name}_no_matches_refs":
-                                            non_matched_refs
-                                            })
-    non_matched_series.to_excel(f"{output_path}_not_aligned.xlsx", sheet_name="no_matches", index=False)
+        f"{file2_name}_no_matches_refs":
+            non_matched_refs
+    })
+
+    # output aligned and partial aligned text.
+    output_file_name = f'sample_output_{model}_{today}'
+    output_path = f"data/output/{output_file_name}.xlsx"
+
+    with pd.ExcelWriter(output_path) as writer:
+        aligned_df.to_excel(writer, sheet_name="Aligned", index=False)
+        partial_df.to_excel(writer, sheet_name="Partial", index=False)
+        non_matched_series.to_excel(writer, sheet_name="No_matches", index=False)
+    print(f"\nOutput complete. Saved in {output_path}")
 
 
 if __name__ == '__main__':

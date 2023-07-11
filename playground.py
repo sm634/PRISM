@@ -1,23 +1,29 @@
-from utils.text_preprocessor import TextPreprocessor
-from utils.data_handler import FileHandler
-from utils.key_phrase_extractor import Extractor
+import pandas as pd
 
-# # open specified files and get regulatory text cols.
-file_handler = FileHandler()
-ref1, text1, ref2, text2 = file_handler.get_reg_texts_cols()
-file1_name, file2_name = file_handler.get_files_names()
 
-print("preprocessing regulation texts")
-preprocessor = TextPreprocessor()
-preprocessed_text1 = [preprocessor.preprocess_text(text) for text in text1]
-preprocessed_text2 = [preprocessor.preprocess_text(text) for text in text2]
+# Create a dictionary with dummy data
+data = {
+    'Column1': [1, 2, 3, 4, 5],
+    'Column2': ['A', 'B', 'C', 'D', 'E'],
+    'Column3': [True, False, True, False, True]
+}
 
-# key phrase extractor
-# get key phrases from reg text 2.
-print("Extracting key phrases from regulation text 2")
-kp_extractor = Extractor()
+# Create a DataFrame from the dictionary
+df = pd.DataFrame(data)
 
-# extract key phrases from corpus 1 and find matching documents in corpus 2.
-matching_docs, num_of_matching_kp = kp_extractor.find_kw_matching_docs(preprocessed_text1, preprocessed_text2)
+# Create a dictionary with dummy data
+data2 = {
+    'Name': ['Alice', 'Bob', 'Charlie', 'David', 'Eve'],
+    'Age': [25, 32, 41, 28, 36],
+    'City': ['New York', 'London', 'Paris', 'Tokyo', 'Sydney'],
+    'Salary': [50000, 70000, 60000, 80000, 55000]
+}
 
-breakpoint()
+# Create a DataFrame from the dictionary
+df2 = pd.DataFrame(data2)
+
+
+file_path = f"gpt-3.5-turbo-2023-07-11_10-35-18874199'.xlsx"
+with pd.ExcelWriter(path=file_path) as writer:
+    df.to_excel(writer, sheet_name='first_dummy')
+    df2.to_excel(writer, sheet_name='second_dummy')

@@ -1,5 +1,4 @@
 import re
-import json
 
 
 def parse_stringified_json(json_string):
