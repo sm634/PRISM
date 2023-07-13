@@ -1,29 +1,25 @@
-import pandas as pd
+from utils.key_phrase_extractor import Extractor
+
+ref2 = ["'EBA-OA 4(6.37)"]
+text2 = ["""Outsourcing should not lower the suitability requirements applied to the members of an institution’s 
+management body, directors and persons responsible for the management of the payment institution and key 
+function holders. Institutions and payment institutions should have adequate competence and sufficient and appropriately 
+skilled resources to ensure appropriate management and oversight of outsourcing arrangements."""]
+
+ref1 = ["ICTRM 5.4"]
+text1 = ["""Members of the management body of the financial entity shall actively keep up to date with sufficient 
+knowledge and skills to understand and assess ICT risk and its impact on the operations of the financial entity, 
+including by following specific training on a regular basis, commensurate to the ICT risk being managed."""]
 
 
-# Create a dictionary with dummy data
-data = {
-    'Column1': [1, 2, 3, 4, 5],
-    'Column2': ['A', 'B', 'C', 'D', 'E'],
-    'Column3': [True, False, True, False, True]
-}
+kp_extractor = Extractor()
 
-# Create a DataFrame from the dictionary
-df = pd.DataFrame(data)
+filtered_ref_corpus1, filtered_ref_corpus2, non_matching_ref = kp_extractor.get_matching_records(text1, text2, ref1, ref2)
 
-# Create a dictionary with dummy data
-data2 = {
-    'Name': ['Alice', 'Bob', 'Charlie', 'David', 'Eve'],
-    'Age': [25, 32, 41, 28, 36],
-    'City': ['New York', 'London', 'Paris', 'Tokyo', 'Sydney'],
-    'Salary': [50000, 70000, 60000, 80000, 55000]
-}
+filtered_corpus1 = [doc for doc in filtered_ref_corpus1.values()]
+filtered_corpus2 = [doc for doc in filtered_ref_corpus2.values()]
+filtered_ref1 = [ref for ref in filtered_ref_corpus1.keys()]
+filtered_ref2 = [ref for ref in filtered_ref_corpus2.keys()]
 
-# Create a DataFrame from the dictionary
-df2 = pd.DataFrame(data2)
+breakpoint()
 
-
-file_path = f"gpt-3.5-turbo-2023-07-11_10-35-18874199'.xlsx"
-with pd.ExcelWriter(path=file_path) as writer:
-    df.to_excel(writer, sheet_name='first_dummy')
-    df2.to_excel(writer, sheet_name='second_dummy')

@@ -17,9 +17,7 @@ def calculate_costs():
 
     prod_calc = (len(filtered_ref_corpus1) * len(filtered_ref_corpus2))
     cost = 0.0015 * prod_calc
-    time = (1.5 * prod_calc)/60
-    return cost, time
+    return cost
 
 
-print(f"\nThe estimated cost for doing this analysis is: ${calculate_costs()[0]}\n")
-print(f"The estimated (rough if all requests get processed as expected) time to run is {calculate_costs()[1]} minutes")
+print(f"\nThe estimated cost for doing this analysis is: ${calculate_costs()}\n")

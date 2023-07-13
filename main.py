@@ -7,6 +7,7 @@ from datetime import datetime
 import re
 import argparse
 from time import time
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 
@@ -55,16 +56,11 @@ def run_all():
     confidence_scores = []
     similarity_scores = []
 
-    estimated_time = (1.5 * len(filtered_ref_corpus1) * len(filtered_ref_corpus2))/60
-    n_comparisons = len(filtered_ref_corpus1) * len(filtered_ref_corpus2)
+    print(f"\ncomparing {file1_name} to {file2_name} for an initial analysis. Go enjoy a cup of coffee while PRISM"
+          f" gets things done for you :)\n")
 
-
-    print(f"\ncomparing {file1_name} to {file2_name} for an initial analysis. This will likely take {estimated_time} "
-          f"minutes. If that is enough time, go enjoy a cup of coffee :)\n")
-
-    for i, text1 in enumerate(filtered_corpus1):
+    for i, text1 in enumerate(tqdm(filtered_corpus1)):
         for j, text2 in enumerate(filtered_corpus2):
-
             comparison = prompt.compare_policies_prompt(text_1=text1, text_2=text2)
             dict_output = parse_stringified_json(comparison)
             explanations.append(dict_output['explanation'])
@@ -90,6 +86,8 @@ def run_all():
     aligned_df = df[df['similarity_score'] >= 0.7].copy()
     partial_df = df.loc[(df['similarity_score'] >= 0.5) &
                         (df['similarity_score'] < 0.7)].copy()
+    no_df = df.loc[(df['similarity_score'] < 0.5) &
+                   (df['similarity_score'] > 0)]
 
     # Provide a list of references from corpus2 that was not found in corpus1.
     non_matched_series = pd.DataFrame(data={
@@ -98,13 +96,14 @@ def run_all():
     })
 
     # output aligned and partial aligned text.
-    output_file_name = f'sample_output_{model}_{today}'
+    output_file_name = f'{file1_name}_{file2_name}_{model}_{today}'
     output_path = f"data/output/{output_file_name}.xlsx"
 
     with pd.ExcelWriter(output_path) as writer:
         aligned_df.to_excel(writer, sheet_name="Aligned", index=False)
         partial_df.to_excel(writer, sheet_name="Partial", index=False)
-        non_matched_series.to_excel(writer, sheet_name="No_matches", index=False)
+        no_df.to_excel(writer, sheet_name="Not matching", index=False)
+        non_matched_series.to_excel(writer, sheet_name="NA", index=False)
     print(f"\nOutput complete. Saved in {output_path}")
 
 
@@ -112,5 +111,5 @@ if __name__ == '__main__':
     t1 = time()
     print("Timer started.")
     run_all()
-    t2 = (time() - t1)/60
+    t2 = (time() - t1) / 60
     print(f"Mapping finished. Process took {t2:.2f} minutes.")
