@@ -1,1 +1,1 @@
-dora_regulation_full.xlsx,eba_demo1.xlsx
+dora_sample_02.xlsx,eba_sample_01.xlsx

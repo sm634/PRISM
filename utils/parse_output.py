@@ -9,6 +9,7 @@ def parse_stringified_json(json_string):
     """
     new_lines_removed = re.subn(pattern=r'\n\s+', repl='', string=json_string)[0]
     new_lines_removed = re.subn(pattern=r'\n', repl='', string=new_lines_removed)[0]
-    output = eval(new_lines_removed)
+    string_json = new_lines_removed[new_lines_removed.index('{'):new_lines_removed.index('}')+1]
+    output = eval(string_json)
 
     return output

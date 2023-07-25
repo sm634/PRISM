@@ -11,6 +11,7 @@ class TextPreprocessor:
         self.stemmer = PorterStemmer()
 
     def preprocess_text(self, text) -> str:
+
         # convert input text to lower.
         corpus = text.lower()
         # get stopwords and punctuation to remove them.

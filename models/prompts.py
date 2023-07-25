@@ -16,13 +16,13 @@ class PromptsInvoice(Prompts):
     @staticmethod
     def __extract_invoice_prompt(data_fields, prompt_text, invoice_text):
         return f"""your job is to extract the values for the following data fields {data_fields}.
-                
+
                 {prompt_text}
-                
+
                 "{invoice_text}"
             """
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
+    @backoff.on_exception(backoff.expo, RateLimitError, max_time=1000)
     def chat_completions_with_backoff(self, data_fields, prompt_text, invoice_text, retry=True):
         while retry:
             try:
@@ -50,7 +50,7 @@ class PromptsInvoice(Prompts):
             except openai.error.APIError as e:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
+    @backoff.on_exception(backoff.expo, RateLimitError, max_time=1000)
     def completions_with_backoff(self, data_fields, prompt_text, invoice_text, retry=True):
         # try - except clause to handle bad gateway problems.
         while retry:
@@ -115,17 +115,17 @@ class CompareText(Prompts):
         of the explanation, a key-value pair of similarity score in range [0,1] between the two texts, 
         and another key-value pair of confidence score in range [0,1]. Make sure the similarity and confidence scores 
         take into account similarity between text 1 and text 2 on all aspects.
-        
+
         Example: 
-        
+
         "explanation": "They are similar because they are both focused on ... but the differences are ...", 
         "similarity_score": 0.5,
         "confidence_score": 0.5
 
         text 1: {text_1}  
-        
+
         text 2: {text_2}
-        
+
         """
 
     @staticmethod
@@ -162,7 +162,7 @@ class CompareText(Prompts):
             except openai.error.ServiceUnavailableError as e:
                 print(f"{e}. Trying again with exponential backoff.")
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
+    @backoff.on_exception(backoff.expo, RateLimitError, max_time=1000)
     def completions_with_backoff(self, text_1, text_2, retry=True):
         # try - except clause to handle bad gateway problems.
         while retry:

@@ -8,7 +8,7 @@ class Extractor:
                  language="en",
                  max_word_size=2,
                  duplicate_limit=0.9,
-                 num_keywords=20,
+                 num_keywords=6,
                  features=None):
 
         if extractor == 'key_word':
@@ -43,21 +43,24 @@ class Extractor:
 
         return kp_matched_docs, num_kp_matches
 
-    def get_matching_records(self, corpus1: List, corpus2: List, ref1: List, ref2: List, log=True):
+    def get_matching_records(self, corpus1: List, corpus2: List, ref1: List, ref2: List, log=True, preprocess=False):
         """A function that is used to get documents amongst two corpus to that contain relevant key words."""
 
         # calculation to understand numbers of docs.
         total_docs = len(corpus1) * len(corpus2)
 
-        preprocessor = TextPreprocessor()
-        preprocessed_corpus1 = [preprocessor.preprocess_text(text) for text in corpus1]
-        preprocessed_corpus2 = [preprocessor.preprocess_text(text) for text in corpus2]
+        if preprocess:
+            preprocessor = TextPreprocessor()
+            preprocessed_corpus1 = [preprocessor.preprocess_text(text) for text in corpus1]
+            preprocessed_corpus2 = [preprocessor.preprocess_text(text) for text in corpus2]
 
-        # This returns a List[List[Tuple]], where the first list contains all comparisons between corpus 1 and 2
-        # for key word searches. The list within the list contains all key word matches in a particular document
-        # belonging to corpus 2 that is also found in corpus 1. The tuple consists of:
-        # (document index of corpus 2, document index of corpus 1, count of kw matches).
-        kp_matched_docs, num_kp_matches = self.find_kw_matching_docs(preprocessed_corpus1, preprocessed_corpus2)
+            # This returns a List[List[Tuple]], where the first list contains all comparisons between corpus 1 and 2
+            # for key word searches. The list within the list contains all key word matches in a particular document
+            # belonging to corpus 2 that is also found in corpus 1. The tuple consists of:
+            # (document index of corpus 2, document index of corpus 1, count of kw matches).
+            kp_matched_docs, num_kp_matches = self.find_kw_matching_docs(preprocessed_corpus1, preprocessed_corpus2)
+        else:
+            kp_matched_docs, num_kp_matches = self.find_kw_matching_docs(corpus1, corpus2)
 
         if log:
             print(f"Number of documents with matching key phrases across corpus 1 and corpus 2: {num_kp_matches}"
