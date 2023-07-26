@@ -8,6 +8,7 @@ import re
 import argparse
 from time import time
 from tqdm import tqdm
+import csv
 
 parser = argparse.ArgumentParser()
 
@@ -55,21 +56,51 @@ def run_all():
     explanations = []
     confidence_scores = []
     similarity_scores = []
+    refs_completed = []
 
     print(f"\ncomparing {file1_name} to {file2_name} for an initial analysis. Go enjoy a cup of coffee while PRISM"
           f" gets things done for you :)\n")
 
-    for i, text1 in enumerate(tqdm(filtered_corpus1)):
-        for j, text2 in enumerate(filtered_corpus2):
-            comparison = prompt.compare_policies_prompt(text_1=text1, text_2=text2)
-            dict_output = parse_stringified_json(comparison)
-            explanations.append(dict_output['explanation'])
-            confidence_scores.append(dict_output['confidence_score'])
-            similarity_scores.append(dict_output['similarity_score'])
-            text_1_list.append(text1)
-            text_1_ref.append(filtered_ref1[i])
-            text_2_list.append(text2)
-            text_2_ref.append(filtered_ref2[j])
+    # set up output path
+    output_file_name = f'{file1_name}_{file2_name}_{model}_{today}'
+    backup_folder_path = 'data/backup/'
+    backup_file = open(f'{backup_folder_path}{output_file_name}_backup.csv', 'w')
+    backup_file.write(f"ref1, {file1_name}, ref2, {file2_name}, model_explanation, confidence_score, similarity_score")
+    backup_file.close()
+    backup_file = open(f'{backup_folder_path}{output_file_name}_backup.csv', 'a')
+
+    try:
+        for i, text1 in enumerate(tqdm(filtered_corpus1)):
+            for j, text2 in enumerate(filtered_corpus2):
+                comparison = prompt.compare_policies_prompt(text_1=text1, text_2=text2)
+                dict_output = parse_stringified_json(comparison)
+
+                # Keep variables of all the bits that need to be written.
+                ref1 = filtered_ref1[i]
+                text1_backup = text1.replace(',', '')
+                ref2 = filtered_ref2[j]
+                text2_backup = text2.replace(',', '')
+                explanation = dict_output['explanation']
+                explanation_backup = explanation.replace(',', '')
+                confidence_score = dict_output['confidence_score']
+                similarity_score = dict_output['similarity_score']
+
+                # write to backup csv file.
+                backup_file.write(f"\n{ref1}, {text1_backup}, {ref2}, {text2_backup}, {explanation_backup}, "
+                                  f"{confidence_score}, {similarity_score}")
+
+                # store in lists to write to final excel file.
+                explanations.append(explanation)
+                confidence_scores.append(confidence_score)
+                similarity_scores.append(similarity_score)
+                text_1_list.append(text1)
+                text_1_ref.append(ref1)
+                text_2_list.append(text2)
+                text_2_ref.append(ref2)
+    except:
+        backup_file.close()
+        print(f"The programme failed, however all the completed refs for {file1_name} are saved in f'{backup_folder_path}{output_file_name}_backup.csv")
+        raise
 
     # Create a dataframe of all matched comparisons.
     df = pd.DataFrame(data={f'{file1_name}_ref': text_1_ref,
@@ -82,12 +113,8 @@ def run_all():
                             }).sort_values(by=['similarity_score', 'confidence_score'], ascending=False)
 
     print("\nSorting output to get results.")
-    # partition dataframe based on aligned and partially aligned categories.
-    aligned_df = df[df['similarity_score'] >= 0.7].copy()
-    partial_df = df.loc[(df['similarity_score'] >= 0.5) &
-                        (df['similarity_score'] < 0.7)].copy()
-    no_df = df.loc[(df['similarity_score'] < 0.5) &
-                   (df['similarity_score'] > 0)]
+    # # partition dataframe based on aligned and partially aligned categories.
+    main_output_df = df.sort_values(by=['similarity_score', 'confidence_score']).copy()
 
     # Provide a list of references from corpus2 that was not found in corpus1.
     non_matched_series = pd.DataFrame(data={
@@ -96,13 +123,10 @@ def run_all():
     })
 
     # output aligned and partial aligned text.
-    output_file_name = f'{file1_name}_{file2_name}_{model}_{today}'
     output_path = f"data/output/{output_file_name}.xlsx"
 
     with pd.ExcelWriter(output_path) as writer:
-        aligned_df.to_excel(writer, sheet_name="Aligned", index=False)
-        partial_df.to_excel(writer, sheet_name="Partial", index=False)
-        no_df.to_excel(writer, sheet_name="Not matching", index=False)
+        main_output_df.to_excel(writer, sheet_name="matches", index=False)
         non_matched_series.to_excel(writer, sheet_name="NA", index=False)
     print(f"\nOutput complete. Saved in {output_path}")
 
