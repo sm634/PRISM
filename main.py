@@ -8,7 +8,6 @@ import re
 import argparse
 from time import time
 from tqdm import tqdm
-import csv
 
 parser = argparse.ArgumentParser()
 
