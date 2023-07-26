@@ -2,6 +2,7 @@ from models.prompts import CompareText
 from utils.parse_output import parse_stringified_json
 from utils.data_handler import FileHandler
 from utils.key_phrase_extractor import Extractor
+from utils.output_funcs import model_judgment_criteria
 import pandas as pd
 from datetime import datetime
 import re
@@ -18,6 +19,25 @@ args = parser.parse_args()
 # get variables to be used.
 today = re.sub('\.+', '', str(datetime.today())).replace(':', '-').replace(' ', '_')
 model = CompareText.model = args.model
+
+
+def create_backup_file(file1, file2, model_name, datetime):
+    """
+    Create a backup file to save in case run is interrupted.
+    :param file1: Base/reference regulatory text file, e.g. Dora.
+    :param file2: Comparison text file name.
+    :param model_name: model to be used, saved as a record - e.g. gpt-3.5-turbo
+    :param datetime: Version/tracking information.
+    :return: a file base to write on.
+    """
+    output_file_name = f'{file1}_{file2}_{model_name}_{datetime}'
+    backup_folder_path = 'data/backup/'
+    backup_file = open(f'{backup_folder_path}{output_file_name}_backup.csv', 'w')
+    backup_file.write(f"ref1, {file1}, ref2, {file2}, model_explanation, confidence_score, similarity_score")
+    backup_file.close()
+    backup_file = open(f'{backup_folder_path}{output_file_name}_backup.csv', 'a')
+
+    return backup_file
 
 
 def run_all():
@@ -55,18 +75,12 @@ def run_all():
     explanations = []
     confidence_scores = []
     similarity_scores = []
-    refs_completed = []
 
     print(f"\ncomparing {file1_name} to {file2_name} for an initial analysis. Go enjoy a cup of coffee while PRISM"
           f" gets things done for you :)\n")
 
-    # set up output path
-    output_file_name = f'{file1_name}_{file2_name}_{model}_{today}'
-    backup_folder_path = 'data/backup/'
-    backup_file = open(f'{backup_folder_path}{output_file_name}_backup.csv', 'w')
-    backup_file.write(f"ref1, {file1_name}, ref2, {file2_name}, model_explanation, confidence_score, similarity_score")
-    backup_file.close()
-    backup_file = open(f'{backup_folder_path}{output_file_name}_backup.csv', 'a')
+    # set up back up file to write on.
+    backup_file = create_backup_file(file1_name, file2_name, model_name=model, datetime=today)
 
     try:
         for i, text1 in enumerate(tqdm(filtered_corpus1)):
@@ -84,7 +98,7 @@ def run_all():
                 confidence_score = dict_output['confidence_score']
                 similarity_score = dict_output['similarity_score']
 
-                # write to backup csv file.
+                # write to back up csv file.
                 backup_file.write(f"\n{ref1}, {text1_backup}, {ref2}, {text2_backup}, {explanation_backup}, "
                                   f"{confidence_score}, {similarity_score}")
 
@@ -98,7 +112,8 @@ def run_all():
                 text_2_ref.append(ref2)
     except:
         backup_file.close()
-        print(f"The programme failed, however all the completed refs for {file1_name} are saved in f'{backup_folder_path}{output_file_name}_backup.csv")
+        print(
+            f"The programme failed, however all the completed refs for {file1_name} are saved in the backup folder.")
         raise
 
     # Create a dataframe of all matched comparisons.
@@ -113,7 +128,8 @@ def run_all():
 
     print("\nSorting output to get results.")
     # # partition dataframe based on aligned and partially aligned categories.
-    main_output_df = df.sort_values(by=['similarity_score', 'confidence_score']).copy()
+    main_output_df = df.sort_values(by=['similarity_score', 'confidence_score'], ascending=False).copy()
+    main_output_df['model_criteria'] = main_output_df['similarity_score'].apply(lambda x: model_judgment_criteria(x))
 
     # Provide a list of references from corpus2 that was not found in corpus1.
     non_matched_series = pd.DataFrame(data={
@@ -122,6 +138,7 @@ def run_all():
     })
 
     # output aligned and partial aligned text.
+    output_file_name = f'{file1_name}_{file2_name}_{model}_{today}'
     output_path = f"data/output/{output_file_name}.xlsx"
 
     with pd.ExcelWriter(output_path) as writer:
