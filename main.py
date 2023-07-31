@@ -9,6 +9,7 @@ import argparse
 from time import time
 from tqdm import tqdm
 import streamlit as st
+import sys
 
 parser = argparse.ArgumentParser()
 
@@ -126,7 +127,8 @@ def main():
             confidence_scores = []
             similarity_scores = []
 
-            st.write(f"\nComparing {file1_name} to {file2_name} for an initial analysis.")
+            st.write(f"\nConducting a semantic comparison between filtered citations in {file1_name} to {file2_name} "
+                     f"for an initial analysis.")
             st.write(f"\nGo enjoy a cup of coffee while PRISM gets things done for you :)")
 
             # set up back up file to write on.
@@ -201,7 +203,10 @@ def main():
                 non_matched_series.to_excel(writer, sheet_name="NA", index=False)
             st.write(f"\nOutput complete. Saved in {output_path}")
             t2 = (time() - t1) / 60
-            st.write(f"Mapping finished. Process took {t2:.2f} minutes.")
+            st.success(f"Mapping finished. Process took {t2:.2f} minutes.")
+
+            if st.button("Exit"):
+                sys.exit()
 
 
 if __name__ == '__main__':
