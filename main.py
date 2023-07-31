@@ -7,7 +7,6 @@ from datetime import datetime
 import re
 import argparse
 from time import time
-from tqdm import tqdm
 import streamlit as st
 import sys
 
@@ -86,8 +85,8 @@ def main():
         if st.button("Run Prism"):
 
             # storing the names of the files.
-            file1_name = uploaded_files[0].name
-            file2_name = uploaded_files[1].name
+            file1_name = uploaded_files[0].name.replace('.xlsx', '')
+            file2_name = uploaded_files[1].name.replace('.xlsx', '')
             # Process files and show progress bar when 'Run Prism' button is clicked
             reg_ref1, reg_corpus1, reg_ref2, reg_corpus2 = process_reg_files(uploaded_files[0], uploaded_files[1])
 
@@ -129,14 +128,14 @@ def main():
 
             st.write(f"\nConducting a semantic comparison between filtered citations in {file1_name} to {file2_name} "
                      f"for an initial analysis.")
-            st.write(f"\nGo enjoy a cup of coffee while PRISM gets things done for you :)")
+            st.write(f"\nGo enjoy a cup of coffee (or a nap) while PRISM gets things done for you :)")
 
             # set up back up file to write on.
             backup_file = create_backup_file(file1_name, file2_name, model_name=model, datetime=today)
 
             try:
                 progress_bar = st.progress(0)
-                for i, text1 in enumerate(tqdm(filtered_corpus1)):
+                for i, text1 in enumerate(filtered_corpus1):
                     for j, text2 in enumerate(filtered_corpus2):
                         comparison = prompt.compare_policies_prompt(text_1=text1, text_2=text2)
                         dict_output = parse_stringified_json(comparison)
@@ -169,7 +168,8 @@ def main():
             except:
                 backup_file.close()
                 st.write(
-                    f"The programme failed, however all the completed refs for {file1_name} are saved in the backup folder.")
+                    f"The programme failed, however all the completed refs for {file1_name} are saved in the backup "
+                    f"folder.")
                 raise
             st.success("Comparison completed!")
 
@@ -203,10 +203,8 @@ def main():
                 non_matched_series.to_excel(writer, sheet_name="NA", index=False)
             st.write(f"\nOutput complete. Saved in {output_path}")
             t2 = (time() - t1) / 60
-            st.success(f"Mapping finished. Process took {t2:.2f} minutes.")
-
-            if st.button("Exit"):
-                sys.exit()
+            st.success(f"Mapping finished. Process took {t2:.2f} minutes. "
+                       f"You may now close the browser and the console.")
 
 
 if __name__ == '__main__':
