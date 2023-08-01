@@ -1,5 +1,5 @@
 from models.prompts import CompareText
-from utils.parse_output import parse_stringified_json
+from tqdm import tqdm
 from utils.key_phrase_extractor import Extractor
 from utils.output_funcs import model_judgment_criteria
 import pandas as pd
@@ -8,7 +8,7 @@ import re
 import argparse
 from time import time
 import streamlit as st
-import sys
+
 
 parser = argparse.ArgumentParser()
 
@@ -135,20 +135,20 @@ def main():
 
             try:
                 progress_bar = st.progress(0)
-                for i, text1 in enumerate(filtered_corpus1):
+                for i, text1 in enumerate(tqdm(filtered_corpus1)):
                     for j, text2 in enumerate(filtered_corpus2):
-                        comparison = prompt.compare_policies_prompt(text_1=text1, text_2=text2)
-                        dict_output = parse_stringified_json(comparison)
+
+                        json_output = prompt.compare_policies_prompt(text_1=text1, text_2=text2)
 
                         # Keep variables of all the bits that need to be written.
                         ref1 = filtered_ref1[i]
                         text1_backup = text1.replace(',', '')
                         ref2 = filtered_ref2[j]
                         text2_backup = text2.replace(',', '')
-                        explanation = dict_output['explanation']
+                        explanation = json_output['explanation']
                         explanation_backup = explanation.replace(',', '')
-                        confidence_score = dict_output['confidence_score']
-                        similarity_score = dict_output['similarity_score']
+                        confidence_score = json_output['confidence_score']
+                        similarity_score = json_output['similarity_score']
 
                         # write to back up csv file.
                         backup_file.write(f"\n{ref1}, {text1_backup}, {ref2}, {text2_backup}, {explanation_backup}, "
@@ -181,7 +181,9 @@ def main():
                                     'model_explanation': explanations,
                                     'confidence_score': confidence_scores,
                                     'similarity_score': similarity_scores
-                                    }).sort_values(by=['similarity_score', 'confidence_score'], ascending=False)
+                                    })
+            df.confidence_score = df.confidence_score.astype(float)
+            df.similarity_score = df.similarity_score.astype(float)
 
             st.write("\nSorting output to get results.")
             # # partition dataframe based on aligned and partially aligned categories.

@@ -111,10 +111,10 @@ class CompareText(Prompts):
         """
 
         return f"""Compare text 1 and text 2 below of legal policies. Summarize text 1 and text 2. 
-        Explain if they are similar or different and give reasons on why. Return a json output with a key value 
-        of the explanation, a key-value pair of similarity score in range [0,1] between the two texts, 
-        and another key-value pair of confidence score in range [0,1]. Make sure the similarity and confidence scores 
-        take into account similarity between text 1 and text 2 on all aspects.
+        Explain if they are similar or different and give reasons on why. Be as specific as possible. 
+        Return a json output with a key value of the explanation, a key-value pair of similarity score in range [0,1] 
+        between the two texts, and another key-value pair of confidence score in range [0,1]. Make sure the similarity 
+        and confidence scores take into account similarity between text 1 and text 2 on all aspects.
 
         Example: 
 
@@ -125,19 +125,40 @@ class CompareText(Prompts):
         text 1: {text_1}  
 
         text 2: {text_2}
-
+        
+        Make sure the output is a json.
         """
-
-    @staticmethod
-    def compare_texts(text_1, text_2):
-        text_info = {
-            "text_1": text_1,
-            "text_2": text_2,
-        }
-        return json.dumps(text_info)
 
     @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
     def chat_completions_with_backoff(self, text_1, text_2, retry=True):
+
+        # custom function for function calling to ensure deterministic json output.
+        my_custom_functions = [
+            {
+                'name': '__compare_policies',
+                'description': 'compare text 1 and text 2 from input and provide an explanation of how similar or '
+                               'different the contents of the text are, provide a similarity score between text 1 and '
+                               'text 2 and a confidence score of that judgment on similarity',
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'explanation': {
+                            'type': 'string',
+                            'description': 'explanation of why text 1 and text 2 are similar and different'
+                        },
+                        'confidence_score': {
+                            'type': 'string',
+                            'description': 'confidence score on the judgment of text similarity in the range [0,1]'
+                        },
+                        'similarity_score': {
+                            'type': 'string',
+                            'description': 'similarity score indicating text 1 and text 2 similarity in the range [0,1]'
+                        }
+                    }
+                }
+            }
+        ]
+
         while retry:
             try:
                 response = openai.ChatCompletion.create(
@@ -146,14 +167,21 @@ class CompareText(Prompts):
                         {"role": "system", "content": "You are a helpful policy analyst. Your job is to compare blocks"
                                                       "of text and assess how similar or different they are and return"
                                                       "a json with the explanation, scores to indicate their similarity"
-                                                      "and your confidence in making that judgment."},
+                                                      "and your confidence in making that judgment. Only use the "
+                                                      "functions you have been provided with."},
                         {"role": "user", "content": self.__compare_policies(text_1, text_2)}
                     ],
+                    functions=my_custom_functions,
+                    function_call='auto',
                     temperature=self.temperature,
                     n=1,
                     max_tokens=self.max_tokens
                 )
-                return response['choices'][0]['message']['content']
+                arguments = response['choices'][0]['message']['function_call']['arguments']
+                output = json.loads(arguments)
+                # return response['choices'][0]['message']['content']
+                return output
+
             except RateLimitError:
                 print(f"Requests to the model are at maximum capacity, cooling off before retrying the requests"
                       f" using exponential backoff.")
