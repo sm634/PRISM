@@ -128,7 +128,7 @@ def main():
 
             st.write(f"\nConducting a semantic comparison between filtered citations in {file1_name} to {file2_name} "
                      f"for an initial analysis.")
-            st.write(f"\nGo enjoy a cup of coffee (or a nap) while PRISM gets things done for you :)")
+            st.write(f"\nGo enjoy a cup of coffee while PRISM gets things done for you :)")
 
             # set up back up file to write on.
             backup_file = create_backup_file(file1_name, file2_name, model_name=model, datetime=today)
