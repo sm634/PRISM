@@ -22,7 +22,7 @@ class PromptsInvoice(Prompts):
                 "{invoice_text}"
             """
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=1000)
+    @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
     def chat_completions_with_backoff(self, data_fields, prompt_text, invoice_text, retry=True):
         while retry:
             try:
@@ -45,12 +45,12 @@ class PromptsInvoice(Prompts):
                 )
                 return response['choices'][0]['message']['content']
             except RateLimitError:
-                print(f"Requests to the model are at maximum capacity, cooling off before retrying the requests"
-                      f" using exponential backoff.")
+                print(f"Requests to the model are has reached its rate limit per minute, cooling off before retrying "
+                      f"the requests using exponential backoff.")
             except openai.error.APIError as e:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=1000)
+    @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
     def completions_with_backoff(self, data_fields, prompt_text, invoice_text, retry=True):
         # try - except clause to handle bad gateway problems.
         while retry:
@@ -65,8 +65,8 @@ class PromptsInvoice(Prompts):
                 )
                 return response.choices[0].text
             except RateLimitError:
-                print(f"Requests to the model are at maximum capacity, cooling off before retrying the requests"
-                      f" using exponential backoff.")
+                print(f"Requests to the model are has reached its rate limit per minute, cooling off before retrying "
+                      f"the requests using exponential backoff.")
             except openai.error.APIError:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
 
@@ -183,14 +183,14 @@ class CompareText(Prompts):
                 return output
 
             except RateLimitError:
-                print(f"Requests to the model are at maximum capacity, cooling off before retrying the requests"
-                      f" using exponential backoff.")
+                print(f"Requests to the model are has reached its rate limit per minute, cooling off before retrying "
+                      f"the requests using exponential backoff.")
             except openai.error.APIError:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
             except openai.error.ServiceUnavailableError as e:
-                print(f"{e}. Trying again with exponential backoff.")
+                print(f"{e}. \nTrying again with exponential backoff.")
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=1000)
+    @backoff.on_exception(backoff.expo, RateLimitError, max_time=300)
     def completions_with_backoff(self, text_1, text_2, retry=True):
         # try - except clause to handle bad gateway problems.
         while retry:
@@ -204,8 +204,8 @@ class CompareText(Prompts):
                 return response.choices[0].text
 
             except RateLimitError:
-                print(f"Requests to the model are at maximum capacity, cooling off before retrying the requests"
-                      f" using exponential backoff.")
+                print(f"Requests to the model are has reached its rate limit per minute, cooling off before retrying "
+                      f"the requests using exponential backoff.")
             except openai.error.APIError:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
             except openai.error.ServiceUnavailableError as e:
