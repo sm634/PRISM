@@ -22,7 +22,11 @@ class PromptsInvoice(Prompts):
                 "{invoice_text}"
             """
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=600)
+    @backoff.on_exception(backoff.expo, (RateLimitError,
+                                         openai.error.APIError,
+                                         openai.error.ServiceUnavailableError,
+                                         openai.error.Timeout),
+                          max_time=900)
     def chat_completions_with_backoff(self, data_fields, prompt_text, invoice_text, retry=True):
         while retry:
             try:
@@ -50,7 +54,11 @@ class PromptsInvoice(Prompts):
             except openai.error.APIError as e:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=600)
+    @backoff.on_exception(backoff.expo, (RateLimitError,
+                                         openai.error.APIError,
+                                         openai.error.ServiceUnavailableError,
+                                         openai.error.Timeout),
+                          max_time=900)
     def completions_with_backoff(self, data_fields, prompt_text, invoice_text, retry=True):
         # try - except clause to handle bad gateway problems.
         while retry:
@@ -129,7 +137,11 @@ class CompareText(Prompts):
         Make sure the output is a json.
         """
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=600)
+    @backoff.on_exception(backoff.expo, (RateLimitError,
+                                         openai.error.APIError,
+                                         openai.error.ServiceUnavailableError,
+                                         openai.error.Timeout),
+                          max_time=900)
     def chat_completions_with_backoff(self, text_1, text_2, retry=True):
 
         # custom function for function calling to ensure deterministic json output.
@@ -192,7 +204,11 @@ class CompareText(Prompts):
             except openai.error.Timeout:
                 print(f"OpenAI timeout error. Trying again with exponential backoff.")
 
-    @backoff.on_exception(backoff.expo, RateLimitError, max_time=600)
+    @backoff.on_exception(backoff.expo, (RateLimitError,
+                                         openai.error.APIError,
+                                         openai.error.ServiceUnavailableError,
+                                         openai.error.Timeout),
+                          max_time=900)
     def completions_with_backoff(self, text_1, text_2, retry=True):
         # try - except clause to handle bad gateway problems.
         while retry:
