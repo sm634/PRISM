@@ -118,11 +118,10 @@ class CompareText(Prompts):
                                          }
         """
 
-        return f"""Compare text 1 and text 2 below of legal policies. Summarize text 1 and text 2. 
-        Explain if they are similar or different and give reasons on why. Be as specific as possible. 
-        Return a json output with a key value of the explanation, a key-value pair of similarity score in range [0,1] 
-        between the two texts, and another key-value pair of confidence score in range [0,1]. Make sure the similarity 
-        and confidence scores take into account similarity between text 1 and text 2 on all aspects.
+        return f"""Compare text 1 and text 2 below of legal policies.
+        Analyse and explain why they are similar or different with analysis. Be as specific as possible. 
+        Return a json output with three key-value pairs: 1. explanation: explanation, 2. similarity_score in range [0,1] 
+        for how similar or different text 1 and 2 are, 3. confidence score in range [0,1].
 
         Example: 
 
@@ -148,23 +147,24 @@ class CompareText(Prompts):
         my_custom_functions = [
             {
                 'name': '__compare_policies',
-                'description': 'compare text 1 and text 2 from input and provide an explanation of how similar or '
-                               'different the contents of the text are, provide a similarity score between text 1 and '
-                               'text 2 and a confidence score of that judgment on similarity',
+                'description': 'compare text 1 and text 2 from input and provide three json key-pair values of '
+                               '1. explanation of how similar or different the contents of the text are '
+                               '2. similarity_score in the range [0,1] for text 1 and text 2 based on the explanation'
+                               '3. confidence_score in the range [0,1] of the judgment for the similarity_score',
                 'parameters': {
                     'type': 'object',
                     'properties': {
                         'explanation': {
                             'type': 'string',
-                            'description': 'explanation of why text 1 and text 2 are similar and different'
-                        },
-                        'confidence_score': {
-                            'type': 'string',
-                            'description': 'confidence score on the judgment of text similarity in the range [0,1]'
+                            'description': 'analysis and explanation of why text 1 and text 2 are similar and different'
                         },
                         'similarity_score': {
                             'type': 'string',
-                            'description': 'similarity score indicating text 1 and text 2 similarity in the range [0,1]'
+                            'description': 'similarity_score indicating text 1 and text 2 similarity in the range [0,1]'
+                        },
+                        'confidence_score': {
+                            'type': 'string',
+                            'description': 'confidence_score on the judgment of text similarity in the range [0,1]'
                         }
                     }
                 }
@@ -178,9 +178,9 @@ class CompareText(Prompts):
                     messages=[
                         {"role": "system", "content": "You are a helpful policy analyst. Your job is to compare blocks"
                                                       "of text and assess how similar or different they are and return"
-                                                      "a json with the explanation, scores to indicate their similarity"
-                                                      "and your confidence in making that judgment. Only use the "
-                                                      "functions you have been provided with."},
+                                                      "a json with key-value pair of explanation, similarity_score and "
+                                                      "confidence_score of the text. "
+                                                      "Only use the functions you have been provided with."},
                         {"role": "user", "content": self.__compare_policies(text_1, text_2)}
                     ],
                     functions=my_custom_functions,
@@ -191,12 +191,10 @@ class CompareText(Prompts):
                 )
                 arguments = response['choices'][0]['message']['function_call']['arguments']
                 output = json.loads(arguments)
-                # return response['choices'][0]['message']['content']
                 return output
 
-            except RateLimitError:
-                print(f"Requests to the model are has reached its rate limit per minute, cooling off before retrying "
-                      f"the requests using exponential backoff.")
+            except RateLimitError as e:
+                print(f"OPENAI ERROR: \n {e} \nRetrying request using exponential backoff.")
             except openai.error.APIError:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
             except openai.error.ServiceUnavailableError as e:
@@ -221,9 +219,8 @@ class CompareText(Prompts):
                 )
                 return response.choices[0].text
 
-            except RateLimitError:
-                print(f"Requests to the model are has reached its rate limit per minute, cooling off before retrying "
-                      f"the requests using exponential backoff.")
+            except RateLimitError as e:
+                print(f"OPENAI ERROR: \n {e} \nRetrying request using exponential backoff.")
             except openai.error.APIError:
                 print(f"The request ran into an OpenAI server issue. Retrying the request again.")
             except openai.error.ServiceUnavailableError as e:

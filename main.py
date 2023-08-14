@@ -9,7 +9,6 @@ import argparse
 from time import time
 import streamlit as st
 
-
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--model', type=str, default='gpt-3.5-turbo')
@@ -35,9 +34,17 @@ def create_backup_file(file1, file2, model_name, datetime):
     backup_file = open(f'{backup_folder_path}{output_file_name}_backup.csv', 'w')
     backup_file.write(f"ref1, {file1}, ref2, {file2}, model_explanation, confidence_score, similarity_score")
     backup_file.close()
-    backup_file = open(f'{backup_folder_path}{output_file_name}_backup.csv', 'a')
+
+    backup_file = open(f'{backup_folder_path}{output_file_name}_backup.csv', 'a', encoding='utf-8')
 
     return backup_file
+
+
+def handle_text_encoding(text):
+    text = text.replace(',', '').replace(';', '')
+    text_encode = text.encode("ascii", "ignore")
+    text_decode = text_encode.decode()
+    return text_decode
 
 
 # Function to read and process the uploaded files
@@ -99,19 +106,18 @@ def main():
             kp_extractor = Extractor()
 
             # extract key phrases from corpus 1 and find matching documents in corpus 2.
-            filtered_ref_corpus1, filtered_ref_corpus2, non_matched_refs = kp_extractor.get_matching_records(reg_corpus1,
-                                                                                                             reg_corpus2,
-                                                                                                             reg_ref1,
-                                                                                                             reg_ref2,
-                                                                                                             log=True)
+            filtered_ref_corpus1, filtered_ref_corpus2, non_matched_refs = kp_extractor.get_matching_records(
+                reg_corpus1,
+                reg_corpus2,
+                reg_ref1,
+                reg_ref2,
+                log=True)
             filtered_corpus1 = [doc for doc in filtered_ref_corpus1.values()]
             filtered_corpus2 = [doc for doc in filtered_ref_corpus2.values()]
             filtered_ref1 = [ref for ref in filtered_ref_corpus1.keys()]
             filtered_ref2 = [ref for ref in filtered_ref_corpus2.keys()]
 
             """COMPARATOR BLOCK:"""
-
-            st.write(f"")
 
             prompt = CompareText()
 
@@ -126,11 +132,15 @@ def main():
             confidence_scores = []
             similarity_scores = []
 
+            # ensure no spaces exist between file names.
+            file1_name = re.sub(r'[\s|\t]', '_', file1_name)
+            file2_name = re.sub(r'[\s|\t]', '_', file2_name)
+
             st.write(f"\nConducting a semantic comparison between filtered citations in {file1_name} to {file2_name} "
                      f"for an initial analysis.")
             st.write(f"\nGo enjoy a cup of coffee while PRISM gets things done for you :)")
 
-            # set up back up file to write on.
+            # set up backup file to write on.
             backup_file = create_backup_file(file1_name, file2_name, model_name=model, datetime=today)
 
             try:
@@ -142,26 +152,42 @@ def main():
 
                         # Keep variables of all the bits that need to be written.
                         ref1 = filtered_ref1[i]
-                        text1_backup = text1.replace(',', '')
                         ref2 = filtered_ref2[j]
-                        text2_backup = text2.replace(',', '')
-                        explanation = json_output['explanation']
-                        explanation_backup = explanation.replace(',', '')
-                        confidence_score = json_output['confidence_score']
-                        similarity_score = json_output['similarity_score']
+
+                        # handling error for when model outputs json without the right keys.
+                        try:
+                            explanation = json_output['explanation']
+                            confidence_score = json_output['confidence_score']
+                            similarity_score = json_output['similarity_score']
+
+                        except KeyError:
+                            try:
+                                explanation = json_output['explanation']
+                            except KeyError:
+                                explanation = str(json_output)
+
+                            confidence_score = 'In explanation text'
+                            similarity_score = 'In explanation text'
+
+                        # preprocessing text to remove an encoding issues.
+                        text1_backup = handle_text_encoding(text1)
+                        text2_backup = handle_text_encoding(text2)
+                        explanation_backup = handle_text_encoding(explanation)
 
                         # write to back up csv file.
-                        backup_file.write(f"\n{ref1}, {text1_backup}, {ref2}, {text2_backup}, {explanation_backup}, "
-                                          f"{confidence_score}, {similarity_score}")
+                        backup_file.write(
+                            f"\n{ref1}, {text1_backup}, {ref2}, {text2_backup}, {explanation_backup}, "
+                            f"{confidence_score}, {similarity_score}")
 
-                        # store in lists to write to final excel file.
-                        explanations.append(explanation)
-                        confidence_scores.append(confidence_score)
-                        similarity_scores.append(similarity_score)
+                        # store in lists to write to final Excel file.
                         text_1_list.append(text1)
                         text_1_ref.append(ref1)
                         text_2_list.append(text2)
                         text_2_ref.append(ref2)
+
+                        explanations.append(explanation)
+                        confidence_scores.append(confidence_score)
+                        similarity_scores.append(similarity_score)
 
                         # update progress bar
                         progress_bar.progress((i + 1) / len(filtered_corpus1))
@@ -171,6 +197,7 @@ def main():
                     f"The programme failed, however all the completed refs for {file1_name} are saved in the backup "
                     f"folder.")
                 raise
+
             st.success("Comparison completed!")
 
             # Create a dataframe of all matched comparisons.
@@ -188,7 +215,8 @@ def main():
             st.write("\nSorting output to get results.")
             # # partition dataframe based on aligned and partially aligned categories.
             main_output_df = df.sort_values(by=['similarity_score', 'confidence_score'], ascending=False).copy()
-            main_output_df['model_criteria'] = main_output_df['similarity_score'].apply(lambda x: model_judgment_criteria(x))
+            main_output_df['model_criteria'] = main_output_df['similarity_score'].apply(
+                lambda x: model_judgment_criteria(x))
 
             # Provide a list of references from corpus2 that was not found in corpus1.
             non_matched_series = pd.DataFrame(data={

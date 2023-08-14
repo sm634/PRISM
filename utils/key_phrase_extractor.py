@@ -8,7 +8,7 @@ class Extractor:
                  language="en",
                  max_word_size=2,
                  duplicate_limit=0.9,
-                 num_keywords=6,
+                 num_keywords=5,
                  features=None):
 
         if extractor == 'key_word':
