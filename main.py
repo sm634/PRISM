@@ -208,8 +208,8 @@ def main():
                                     'confidence_score': confidence_scores,
                                     'similarity_score': similarity_scores
                                     })
-            df.confidence_score = df.confidence_score.astype(float)
-            df.similarity_score = df.similarity_score.astype(float)
+            df.confidence_score = df.confidence_score
+            df.similarity_score = df.similarity_score
 
             st.write("\nSorting output to get results.")
             # # partition dataframe based on aligned and partially aligned categories.
