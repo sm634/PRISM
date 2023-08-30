@@ -53,21 +53,20 @@ def process_reg_files(file_1, file_2):
     df_2 = pd.read_excel(file_2)
 
     # extract out the reg ref and regulation text.
-    regulation_ref1_col = df_1[df_1.columns[0]]
+    regulation_ref1 = df_1[df_1.columns[0]].astype(str)
     regulation_text1_col = df_1.columns[1]
-    regulation1_text = df_1[
-        regulation_text1_col].apply(lambda x: x.replace('\n', ''))
+
+    regulation1_text = df_1[regulation_text1_col].astype(str).apply(lambda x: x.replace('\n', ''))
     # free up memory
     del df_1
 
-    regulation_ref2_col = df_2[df_2.columns[0]]
+    regulation_ref2 = df_2[df_2.columns[0]].astype(str)
     regulation_text2_col = df_2.columns[1]
-    regulation2_text = df_2[
-        regulation_text2_col].apply(lambda x: x.replace('\n', ''))
+    regulation2_text = df_2[regulation_text2_col].astype(str).apply(lambda x: x.replace('\n', ''))
     # free up memory.
     del df_2
 
-    return regulation_ref1_col, regulation1_text, regulation_ref2_col, regulation2_text
+    return regulation_ref1, regulation1_text, regulation_ref2, regulation2_text
 
 
 # Streamlit app
